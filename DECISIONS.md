@@ -93,3 +93,28 @@ Running log of design decisions and deviations from the original plan. Each entr
   They verify the extension's own logic, not the real sites' current markup. That is the job of
   `test/selector-check.spec.js`, run manually against live sites.
 - Required system libraries were installed with `playwright install-deps` (sandbox only).
+
+## D-012 — Readability verdict uses the wallpaper's average colour, not per-pixel analysis
+- The plan asked for "average luminance under the text column". Alpha compositing is linear, so the
+  average of the composite equals the composite of the average. One stored RGB triple (`sample`)
+  therefore gives an exact verdict for any opacity, with no re-decode on slider drag.
+- Blur does not change the average, so the verdict ignores blur. This is stated in the popup copy.
+- Tradeoff: an image with a very bright strip and a very dark strip can average to a passing value
+  while some individual words sit on a failing patch. A per-pixel worst-case check is a possible
+  v0.2 upgrade. The presets are unaffected, since they are verified at the extremes.
+- The verdict is the WORST of light and dark themes, because the site's own toggle can flip.
+
+## D-013 — Presets verified at the extremes, not on sample photos
+- `test/contrast.test.js` checks each preset against pure black, pure white and mid-grey in both
+  themes. Pure white at 74–86% opacity is the worst realistic case, and every preset passes it.
+
+## D-014 — Toolbar badge carries the non-blocking warning
+- The popup is the only place the verdict is explained, and users rarely open it on a chat page.
+  The toolbar badge shows `!` in amber when the verdict fails and `ON` in violet when it passes.
+  Neither state blocks anything.
+
+## D-015 — Bug fixes found by the Phase 3 suite (recorded so they stay fixed)
+- `normalizeSettings` threw on `sites: null` because a stored null overwrote the defaults object.
+  Corrupt storage would have silently disabled the overlay. Fixed; unit test added.
+- `[hidden]` lost to `display:flex` in popup CSS, so an empty readability panel showed with no
+  wallpaper. Fixed with a global `[hidden] { display: none !important }`.

@@ -38,8 +38,10 @@ async function handle(msg, sender) {
     case 'badge:set': {
       const tabId = sender.tab && sender.tab.id;
       if (tabId == null) return false;
-      await chrome.action.setBadgeBackgroundColor({ tabId, color: '#7c5cff' });
-      await chrome.action.setBadgeText({ tabId, text: msg.active ? 'ON' : '' });
+      // '!' = wallpaper is applied but fails WCAG AA readability. A warning, never a block.
+      const text = msg.active ? (msg.warn ? '!' : 'ON') : '';
+      await chrome.action.setBadgeBackgroundColor({ tabId, color: msg.warn ? '#ffb020' : '#7c5cff' });
+      await chrome.action.setBadgeText({ tabId, text });
       return true;
     }
     default:

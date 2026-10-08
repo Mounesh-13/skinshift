@@ -71,7 +71,8 @@
       NS.overlay.detach();
     }
     if (mySeq !== seq) return;
-    safeSend({ type: 'badge:set', active: NS.overlay.isMounted() });
+    const verdict = NS.evaluateContrast(settings.sample, settings.opacity);
+    safeSend({ type: 'badge:set', active: NS.overlay.isMounted(), warn: !!(verdict && !verdict.pass) });
   }
 
   // Popup asks for status. Synchronous reply, so return false from the listener.

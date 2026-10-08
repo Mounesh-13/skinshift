@@ -1,8 +1,10 @@
 /*
- * Popup controller. Reads and writes settings, owns the upload pipeline, and renders the live
- * preview. Settings go to chrome.storage.local (metadata only). The wallpaper Blob goes to
- * IndexedDB. Content scripts pick up changes through storage.onChanged, so the popup never
- * messages tabs directly for settings.
+ * Popup controller. Reads and writes settings, owns the upload pipeline, renders the live
+ * preview and the readability verdict.
+ *
+ * Settings go to chrome.storage.local (metadata only). The wallpaper Blob goes to IndexedDB.
+ * Content scripts pick up changes through storage.onChanged, so the popup never messages tabs
+ * to change a setting.
  */
 (function () {
   'use strict';
@@ -12,6 +14,7 @@
 
   let settings = null;
   let previewUrl = null;
+  let previewTheme = 'light';
   let saveTimer = null;
 
   const ERRORS = {
@@ -31,6 +34,7 @@
     await chrome.storage.local.set({ settings });
   }
 
+  // Slider drags fire many input events. Write storage once the user pauses, not per pixel.
   function saveDebounced(patch) {
     settings = NS.normalizeSettings(Object.assign({}, settings, patch));
     clearTimeout(saveTimer);
@@ -43,39 +47,82 @@
     el.classList.toggle('error', !!isError);
   }
 
-  // Regenerated on every popup open. Never persisted (failure mode #10).
+  // Regenerated on every popup open and never stored (failure mode #10).
   async function refreshPreview() {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       previewUrl = null;
     }
-    $('pv-wall').style.setProperty('background-image', '');
+    $('pv-wall').style.removeProperty('background-image');
+    $('preview').classList.toggle('has-wall', false);
     $('remove').hidden = !settings.hasWallpaper;
     if (!settings.hasWallpaper) return;
     const record = await store.get(NS.DB.key);
     if (record && record.blob) {
       previewUrl = URL.createObjectURL(record.blob);
       $('pv-wall').style.setProperty('background-image', 'url("' + previewUrl + '")');
+      $('preview').classList.add('has-wall');
     }
   }
 
-  function renderPreviewScrim() {
-    const tint = NS.THEME.light.rgb.join(', ');
-    $('pv-scrim').style.setProperty('background-color', 'rgba(' + tint + ', ' + settings.opacity + ')');
-    $('pv-scrim').style.setProperty(
+  function renderPreview() {
+    const scrim = $('pv-scrim');
+    const tint = NS.THEME[previewTheme].rgb.join(', ');
+    scrim.style.setProperty('background-color', 'rgba(' + tint + ', ' + settings.opacity + ')');
+    scrim.style.setProperty(
       'backdrop-filter',
       settings.performanceMode ? 'none' : 'blur(' + settings.blur + 'px)'
     );
+    $('preview').classList.toggle('is-dark', previewTheme === 'dark');
+    document.querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('is-on', b.dataset.theme === previewTheme));
+  }
+
+  function renderPresets() {
+    const wrap = $('presets');
+    wrap.textContent = '';
+    Object.entries(NS.PRESETS).forEach(([id, p]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'preset' + (settings.preset === id ? ' is-on' : '');
+      btn.dataset.preset = id;
+      btn.setAttribute('aria-pressed', String(settings.preset === id));
+
+      const swatch = document.createElement('span');
+      swatch.className = 'preset-swatch';
+      const name = document.createElement('strong');
+      name.textContent = p.label;
+      const note = document.createElement('small');
+      note.textContent = p.note;
+
+      btn.append(swatch, name, note);
+      btn.addEventListener('click', () => applyPreset(id));
+      wrap.appendChild(btn);
+    });
   }
 
   function renderControls() {
-    $('opacity').value = Math.round(settings.opacity * 100);
-    $('opacity-out').textContent = Math.round(settings.opacity * 100) + '%';
+    const pct = Math.round(settings.opacity * 100);
+    $('opacity').value = pct;
+    $('opacity-out').textContent = pct + '%';
     $('blur').value = settings.blur;
     $('blur-out').textContent = settings.blur + 'px';
     $('blur').disabled = settings.performanceMode;
     $('perf').checked = settings.performanceMode;
-    renderPreviewScrim();
+  }
+
+  function renderReadability() {
+    const box = $('readability');
+    if (!settings.sample) {
+      box.hidden = true;
+      return;
+    }
+    const v = NS.evaluateContrast(settings.sample, settings.opacity);
+    box.hidden = false;
+    box.className = 'readability ' + (v.pass ? 'pass' : 'warn');
+    $('read-ratio').textContent = v.ratio.toFixed(1) + ':1';
+    $('read-text').textContent = v.pass
+      ? 'Chat text clears WCAG AA (4.5:1) in light and dark mode.'
+      : 'Below WCAG AA (4.5:1) on the ' + v.worst + ' theme. Raise opacity or try a darker photo. The wallpaper still applies.';
   }
 
   function renderSites() {
@@ -92,13 +139,27 @@
       box.type = 'checkbox';
       box.checked = settings.sites[site.id] !== false;
       box.addEventListener('change', () => {
-        const sites = Object.assign({}, settings.sites, { [site.id]: box.checked });
-        save({ sites });
+        save({ sites: Object.assign({}, settings.sites, { [site.id]: box.checked }) });
       });
 
       row.append(name, box);
       wrap.appendChild(row);
     });
+  }
+
+  function renderAll() {
+    renderPresets();
+    renderControls();
+    renderPreview();
+    renderReadability();
+    renderSites();
+  }
+
+  async function applyPreset(id) {
+    const p = NS.PRESETS[id];
+    if (!p) return;
+    await save({ preset: id, opacity: p.opacity, blur: p.blur });
+    renderAll();
   }
 
   async function refreshSiteStatus() {
@@ -112,24 +173,25 @@
       if (!tab || tab.id == null) throw new Error('no-tab');
       const status = await chrome.tabs.sendMessage(tab.id, { type: 'status:get' });
       if (!status) throw new Error('no-content');
-      if (status.status === NS.STATUS.UNSUPPORTED) setPill(status.name + ': unsupported', 'pill-warn');
+      if (status.status === NS.STATUS.UNSUPPORTED) setPill(status.name + ': layout not recognised', 'pill-warn');
       else if (status.active) setPill(status.name + ': active', 'pill-ok');
-      else if (!status.hasWallpaper) setPill(status.name + ': upload a wallpaper', 'pill-muted');
+      else if (!status.hasWallpaper) setPill(status.name + ': upload a photo', 'pill-muted');
       else if (!status.enabled) setPill(status.name + ': off for this site', 'pill-muted');
       else setPill(status.name + ': waiting…', 'pill-muted');
     } catch (e) {
-      setPill('Open ChatGPT to preview', 'pill-muted');
+      setPill('Open a supported chat to see status', 'pill-muted');
     }
   }
 
   async function onFile(file) {
     try {
       const out = await NS.prepareWallpaper(file);
-      const updatedAt = Date.now();
+      const updatedAt = Date.now(); // one timestamp for both stores, so versions always agree
       await store.put(NS.DB.key, { blob: out.blob, width: out.width, height: out.height, updatedAt });
       await save({ hasWallpaper: true, sample: out.sample, wallpaperUpdatedAt: updatedAt });
       say('Saved (' + out.width + '×' + out.height + '). Applied to open chat tabs.');
       await refreshPreview();
+      renderAll();
     } catch (err) {
       say(ERRORS[err && err.code] || 'Something went wrong saving that image.', true);
     }
@@ -140,6 +202,20 @@
     await save({ hasWallpaper: false, sample: null, wallpaperUpdatedAt: 0 });
     say('Wallpaper removed. Chat pages are back to stock.');
     await refreshPreview();
+    renderAll();
+  }
+
+  // Resets the look only. Keeps the wallpaper, site toggles and everything else the user chose.
+  async function resetLook() {
+    const d = NS.defaultSettings();
+    await save({
+      preset: d.preset,
+      opacity: d.opacity,
+      blur: d.blur,
+      performanceMode: d.performanceMode
+    });
+    say('Look reset to Light overlay defaults.');
+    renderAll();
   }
 
   function wire() {
@@ -149,30 +225,40 @@
       if (file) onFile(file);
     });
     $('remove').addEventListener('click', removeWallpaper);
+    $('reset').addEventListener('click', resetLook);
+
+    document.querySelectorAll('.seg-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        previewTheme = b.dataset.theme;
+        renderPreview();
+      });
+    });
 
     $('opacity').addEventListener('input', (e) => {
       const v = Number(e.target.value) / 100;
       $('opacity-out').textContent = e.target.value + '%';
-      saveDebounced({ opacity: v });
-      renderPreviewScrim();
+      saveDebounced({ opacity: v, preset: 'custom' });
+      renderPreview();
+      renderReadability();
+      renderPresets();
     });
     $('blur').addEventListener('input', (e) => {
       $('blur-out').textContent = e.target.value + 'px';
-      saveDebounced({ blur: Number(e.target.value) });
-      renderPreviewScrim();
+      saveDebounced({ blur: Number(e.target.value), preset: 'custom' });
+      renderPreview();
+      renderPresets();
     });
     $('perf').addEventListener('change', (e) => {
       $('blur').disabled = e.target.checked;
       save({ performanceMode: e.target.checked });
-      renderPreviewScrim();
+      renderPreview();
     });
   }
 
   (async function init() {
     settings = await loadSettings();
     wire();
-    renderControls();
-    renderSites();
+    renderAll();
     await refreshPreview();
     await refreshSiteStatus();
   })();

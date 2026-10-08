@@ -59,12 +59,15 @@
   // Merges whatever is in storage with defaults. Missing or malformed data falls back to
   // defaults, so a corrupted settings blob can't brick the extension.
   NS.normalizeSettings = function normalizeSettings(stored) {
-    const base = NS.defaultSettings();
-    if (!stored || typeof stored !== 'object') return base;
-    const out = Object.assign(base, stored);
-    out.sites = Object.assign(base.sites, stored.sites && typeof stored.sites === 'object' ? stored.sites : {});
-    out.opacity = clamp(Number(out.opacity), 0, 1, base.opacity);
-    out.blur = clamp(Number(out.blur), 0, 40, base.blur);
+    const defaults = NS.defaultSettings();
+    if (!stored || typeof stored !== 'object') return defaults;
+    // Keep the default `sites` in its own variable: merging `stored` first would let a corrupt
+    // `sites: null` overwrite it, and the next merge would throw.
+    const storedSites = stored.sites && typeof stored.sites === 'object' ? stored.sites : {};
+    const out = Object.assign(defaults, stored);
+    out.sites = Object.assign(NS.defaultSettings().sites, storedSites);
+    out.opacity = clamp(Number(out.opacity), 0, 1, NS.PRESETS.light.opacity);
+    out.blur = clamp(Number(out.blur), 0, 40, NS.PRESETS.light.blur);
     out.performanceMode = !!out.performanceMode;
     out.hasWallpaper = !!out.hasWallpaper;
     return out;

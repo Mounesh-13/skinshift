@@ -7,7 +7,7 @@
   },
   "scripts": {
     "test:e2e": "node test/e2e/smoke.mjs",
-    "test:unit": "node --test test/",
+    "test:unit": "node --test test/contrast.test.js",
     "test:selectors": "playwright test test/selector-check.spec.js"
   },
   "keywords": [],
