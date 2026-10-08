@@ -1,0 +1,40 @@
+/*
+ * Static overlay styles. Declared in manifest.json "css" so they are injected automatically,
+ * before any script runs (no flash of un-styled layer).
+ *
+ * Layering, back to front:
+ *   1. canvas (site background is transparent, see overlay-manager.js)
+ *   2. #skinshift-root, z-index:-1, behind the entire app
+ *   3. .ss-wallpaper: the user's image, covering the viewport
+ *   4. .ss-scrim: theme-coloured tint. Blurs the wallpaper behind it (backdrop-filter)
+ *      unless Performance mode is on, in which case only the tint remains.
+ *   5. the site's own UI, untouched
+ */
+
+#skinshift-root {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+#skinshift-root .ss-wallpaper {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#skinshift-root .ss-scrim {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(var(--ss-rgb, 255, 255, 255), var(--ss-opacity, 0.82));
+}
+
+/* Frosted glass: blur what is behind the scrim. This is the GPU-heavy path. */
+#skinshift-root[data-ss-mode="blur"] .ss-scrim {
+  -webkit-backdrop-filter: blur(var(--ss-blur, 6px));
+  backdrop-filter: blur(var(--ss-blur, 6px));
+}

@@ -4,7 +4,10 @@
   "short_name": "SkinShift",
   "version": "0.1.0",
   "description": "Give your AI chat a custom wallpaper and a frosted-glass readability layer. 100% local. Zero network requests.",
-  "permissions": ["storage", "unlimitedStorage"],
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
   "host_permissions": [
     "https://chatgpt.com/*"
   ],
@@ -25,5 +28,24 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "src/lib/constants.js",
+        "src/lib/contrast.js",
+        "src/content/overlay-manager.js",
+        "src/content/site-adapters/chatgpt.js",
+        "src/content/content-script.js"
+      ],
+      "css": [
+        "src/styles/overlay-base.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
 }

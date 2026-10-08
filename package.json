@@ -1,0 +1,21 @@
+{
+  "name": "skinshift",
+  "version": "0.1.0",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "test:e2e": "node test/e2e/smoke.mjs",
+    "test:unit": "node --test test/",
+    "test:selectors": "playwright test test/selector-check.spec.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "SkinShift for AI Chats: a 100% local Chrome extension that adds a wallpaper and frosted-glass layer to ChatGPT, Claude and Gemini.",
+  "devDependencies": {
+    "playwright": "^1.64.0"
+  },
+  "private": true
+}

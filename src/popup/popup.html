@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkinShift</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="card">
+    <header class="top">
+      <div class="brand">
+        <img src="../../icons/icon32.png" width="22" height="22" alt="">
+        <h1>SkinShift</h1>
+      </div>
+      <span id="site-status" class="pill pill-muted">Checking…</span>
+    </header>
+
+    <section class="preview" aria-label="Preview">
+      <div id="pv-wall" class="pv-wall"></div>
+      <div id="pv-scrim" class="pv-scrim"></div>
+      <div class="pv-bubble pv-bubble-a">Your chat, your look.</div>
+      <div class="pv-bubble pv-bubble-b">Readable on any wallpaper.</div>
+    </section>
+
+    <section class="block">
+      <div class="row">
+        <label class="btn" for="file-input">Upload wallpaper</label>
+        <button id="remove" class="ghost" type="button" hidden>Remove</button>
+      </div>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" hidden>
+      <p id="msg" class="hint" role="status">JPEG, PNG or WebP · up to 15 MB · resized on this device</p>
+    </section>
+
+    <section class="block">
+      <div class="slider">
+        <div class="slider-head"><span>Opacity</span><output id="opacity-out">82%</output></div>
+        <input id="opacity" type="range" min="0" max="100" step="1" aria-label="Scrim opacity">
+      </div>
+      <div class="slider">
+        <div class="slider-head"><span>Blur</span><output id="blur-out">6px</output></div>
+        <input id="blur" type="range" min="0" max="40" step="1" aria-label="Blur radius">
+      </div>
+      <label class="toggle">
+        <input id="perf" type="checkbox">
+        <span>Performance mode <em>(no blur, lighter on GPU)</em></span>
+      </label>
+    </section>
+
+    <section class="block">
+      <div class="block-title">Sites</div>
+      <div id="sites" class="sites"></div>
+    </section>
+
+    <footer class="foot">
+      <span>Local only · zero network requests</span>
+    </footer>
+  </main>
+
+  <script src="../lib/constants.js"></script>
+  <script src="../lib/idb-wrapper.js"></script>
+  <script src="../lib/contrast.js"></script>
+  <script src="../lib/image-utils.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
