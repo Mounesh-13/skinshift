@@ -6,15 +6,20 @@
     "test": "test"
   },
   "scripts": {
-    "test:e2e": "node test/e2e/smoke.mjs",
     "test:unit": "node --test test/contrast.test.js",
-    "test:selectors": "playwright test test/selector-check.spec.js"
+    "test:e2e": "node test/e2e/smoke.mjs && node test/e2e/multisite.mjs && node test/e2e/popup-ui.mjs",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:selectors": "playwright test",
+    "screenshots": "node tools/screenshots.mjs",
+    "icons": "python3 tools/make-icons.py",
+    "package": "node tools/package.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "description": "SkinShift for AI Chats: a 100% local Chrome extension that adds a wallpaper and frosted-glass layer to ChatGPT, Claude and Gemini.",
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "playwright": "^1.64.0"
   },
   "private": true
