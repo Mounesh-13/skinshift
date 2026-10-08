@@ -88,8 +88,19 @@
     root.id = ROOT_ID;
     root.setAttribute('aria-hidden', 'true');
 
-    const wallpaper = document.createElement('div');
+    // An <img>, not a CSS background: an <img> in the page reports load errors (including
+    // a page CSP blocking blob:) through its own `error` event. A CSS background fails
+    // silently. Found by test/e2e/multisite.mjs; see DECISIONS.md D-010.
+    const wallpaper = document.createElement('img');
     wallpaper.className = 'ss-wallpaper';
+    wallpaper.alt = '';
+    wallpaper.decoding = 'async';
+    wallpaper.draggable = false;
+    wallpaper.addEventListener('error', () => {
+      if (wallpaper.getAttribute('src') !== state.objectUrl) return; // stale URL from a previous wallpaper
+      state.blocked = true;
+      applyVisuals();
+    });
 
     const scrim = document.createElement('div');
     scrim.className = 'ss-scrim';
@@ -114,12 +125,9 @@
     state.root.style.setProperty('--ss-opacity', String(NS.clamp(s.opacity, 0, 1, 0.8)));
     state.root.style.setProperty('--ss-blur', NS.clamp(s.blur, 0, 40, 6) + 'px');
 
-    if (state.blocked || !state.objectUrl) {
-      state.wallpaperEl.style.setProperty('display', 'none');
-    } else {
-      state.wallpaperEl.style.setProperty('display', 'block');
-      state.wallpaperEl.style.setProperty('background-image', 'url("' + state.objectUrl + '")');
-    }
+    // Hide rather than show a broken-image icon. Scrim still renders, so the chat stays readable.
+    const show = !state.blocked && !!state.objectUrl;
+    state.wallpaperEl.style.setProperty('display', show ? 'block' : 'none');
   }
 
   // Clears the site's own opaque surfaces so the layer shows through. Only surfaces are touched.
@@ -147,16 +155,6 @@
 
   // Probe the wallpaper with a separate Image. A page CSP that blocks blob: images would
   // otherwise fail silently and leave a blank layer.
-  function probe(url) {
-    const img = new Image();
-    img.onerror = () => {
-      if (url !== state.objectUrl) return; // a newer wallpaper has replaced this one
-      state.blocked = true;
-      applyVisuals();
-    };
-    img.src = url;
-  }
-
   async function ensureWallpaper(version) {
     if (state.objectUrl && state.loadedVersion === version) return true;
 
@@ -173,7 +171,7 @@
     state.objectUrl = URL.createObjectURL(blob);
     state.loadedVersion = version;
     state.blocked = false;
-    probe(state.objectUrl);
+    state.wallpaperEl.src = state.objectUrl; // property, not markup: no string-to-DOM sink
     return true;
   }
 
@@ -211,6 +209,7 @@
     const epoch = ++state.epoch;
     state.settings = settings;
     state.adapter = adapter;
+    if (!state.root) buildElements(); // must exist before ensureWallpaper sets the <img> src
 
     const ok = await ensureWallpaper(settings.wallpaperUpdatedAt);
     if (epoch !== state.epoch) return state.mounted; // a newer call superseded this one
@@ -219,7 +218,6 @@
       return false;
     }
 
-    if (!state.root) buildElements();
     applyAdapterCss();
     mountRoot();
     applyVisuals();
@@ -237,6 +235,7 @@
       URL.revokeObjectURL(state.objectUrl);
       state.objectUrl = null;
       state.loadedVersion = null;
+      if (state.wallpaperEl) state.wallpaperEl.removeAttribute('src');
     }
     state.mounted = false;
   }

@@ -9,7 +9,9 @@
     "unlimitedStorage"
   ],
   "host_permissions": [
-    "https://chatgpt.com/*"
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.js"
@@ -32,13 +34,17 @@
   "content_scripts": [
     {
       "matches": [
-        "https://chatgpt.com/*"
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
       ],
       "js": [
         "src/lib/constants.js",
         "src/lib/contrast.js",
         "src/content/overlay-manager.js",
         "src/content/site-adapters/chatgpt.js",
+        "src/content/site-adapters/claude.js",
+        "src/content/site-adapters/gemini.js",
         "src/content/content-script.js"
       ],
       "css": [

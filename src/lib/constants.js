@@ -27,7 +27,9 @@
   });
 
   NS.SITES = Object.freeze([
-    Object.freeze({ id: 'chatgpt', label: 'ChatGPT' })
+    Object.freeze({ id: 'chatgpt', label: 'ChatGPT' }),
+    Object.freeze({ id: 'claude', label: 'Claude' }),
+    Object.freeze({ id: 'gemini', label: 'Gemini' })
   ]);
 
   NS.PRESETS = Object.freeze({

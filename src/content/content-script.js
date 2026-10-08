@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   const NS = self.SkinShift;
-  const SURFACE_WAIT_MS = 20000;
+  const SURFACE_WAIT_MS = 10000; // real chat UIs mount well inside this; longer just delays 'unsupported'
   const SURFACE_POLL_MS = 500;
 
   const host = location.hostname;

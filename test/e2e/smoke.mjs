@@ -74,8 +74,9 @@ const attached = await chat.waitForSelector('#skinshift-root', { timeout: 10000,
 check('overlay attaches on ChatGPT after upload (no reload needed)', attached);
 
 if (attached) {
-  const bg = await chat.evaluate(() => getComputedStyle(document.querySelector('#skinshift-root .ss-wallpaper')).backgroundImage);
-  check('wallpaper object URL applied', bg.startsWith('url("blob:'), bg.slice(0, 40));
+  const src = await chat.evaluate(() => document.querySelector('#skinshift-root .ss-wallpaper').getAttribute('src'));
+  const loaded = await chat.evaluate(() => document.querySelector('#skinshift-root .ss-wallpaper').complete && document.querySelector('#skinshift-root .ss-wallpaper').naturalWidth > 0);
+  check('wallpaper object URL applied and decoded', !!src && src.startsWith('blob:') && loaded, (src || '').slice(0, 30));
   const mainBg = await chat.evaluate(() => getComputedStyle(document.querySelector('main')).backgroundColor);
   check('site surface cleared to transparent', mainBg === 'rgba(0, 0, 0, 0)', mainBg);
   const zIndex = await chat.evaluate(() => getComputedStyle(document.getElementById('skinshift-root')).zIndex);

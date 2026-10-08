@@ -63,3 +63,33 @@ Running log of design decisions and deviations from the original plan. Each entr
 - Contrast for presets is checked against worst-case pure black and pure white wallpapers, which
   bounds any real image. `test/contrast.test.js` enforces this, so the "presets always pass"
   promise is a test, not a claim.
+
+## D-009 — Surface wait shortened from 20 s to 10 s
+- The content script polls for the site's main surface before declaring a site supported. At 20 s,
+  a non-chat page showed "waiting…" in the popup for most of that time. Real chat UIs mount well
+  inside 10 s. Chosen as a UX fix found by `test/e2e/multisite.mjs`.
+
+## D-010 — Wallpaper is an `<img>`, not a CSS background; CSP behaviour recorded as observed
+- **First design:** a CSS `background-image` set via `style.setProperty`.
+- **Problem found in testing:** a page CSP that blocks `blob:` images (`img-src 'self'`) left the
+  layer blank with no signal. A separate probe `Image()` loaded fine in the content-script world
+  even while the page's CSS background was blocked, so it could not detect the failure.
+- **Decision:** render the wallpaper as an `<img>` inside the layer. Its `error` event fires in the
+  page context, and the handler hides the image and keeps the scrim. The image is still a Blob
+  object URL, regenerated on each page load (failure mode #10).
+- **Observed behaviour (Chromium, 2026-10-08):** under `img-src 'self' https:`, the content-script
+  `<img>` with a blob URL still decoded (1920 px wide, no CSP violation logged). The CSS-background
+  version was blocked. We do not rely on this either way. The fallback is tested by firing the
+  `error` event directly, and the test suite asserts only what it can observe.
+- **Tradeoff / open question:** if a host CSP can block our `<img>` in some browser build, the
+  fallback handles it. Whether Chrome deliberately exempts content-script images from page CSP is
+  not something we have confirmed from the spec.
+
+## D-011 — E2E tests run against routed mock pages
+- The build sandbox cannot reach chatgpt.com (HTTP 403) and has no logged-in account. Live-site
+  verification is therefore deferred to a manual run (see docs/QA_CHECKLIST.md, Phase 4).
+- `test/e2e/smoke.mjs` and `test/e2e/multisite.mjs` use Playwright `context.route()` to serve
+  ChatGPT-, Claude- and Gemini-shaped DOMs inside real Chromium with the unpacked extension loaded.
+  They verify the extension's own logic, not the real sites' current markup. That is the job of
+  `test/selector-check.spec.js`, run manually against live sites.
+- Required system libraries were installed with `playwright install-deps` (sandbox only).
