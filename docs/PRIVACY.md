@@ -35,8 +35,8 @@ Not requested, deliberately:
 ## Network, verified
 
 The extension contains **no** `fetch`, `XMLHttpRequest`, `WebSocket` or `sendBeacon` call. Remote
-fonts, remote scripts and CDNs are not used. Every asset is bundled. The static audit in the
-build pipeline checks for these APIs, and the end-to-end suites assert zero non-local requests.
+fonts, remote scripts and CDNs are not used. Every asset is bundled. A grep of `src/` for these APIs
+is run by hand before each release (there is no CI yet), and the end-to-end suites assert zero non-local requests.
 
 To verify on your own machine: see the **Privacy** section of the [README](../README.md).
 

@@ -5,7 +5,7 @@ and every line should be justifiable against the privacy promise in [docs/PRIVAC
 
 ## Ground rules
 
-1. **No network code.** No `fetch`, XHR, WebSocket, remote fonts, CDNs or analytics. CI audits for these.
+1. **No network code.** No `fetch`, XHR, WebSocket, remote fonts, CDNs or analytics. Check with: `grep -rnE "fetch\(|XMLHttpRequest|WebSocket|sendBeacon" src`.
 2. **No reading of conversation content.** Only structural selectors, to find the layout.
 3. **Fail silently.** A missing selector means a no-op, never an uncaught error on the host page.
 4. **No `innerHTML`, `eval` or `new Function`.** Use `createElement`, `textContent`, `classList`, `style.setProperty`.
@@ -14,7 +14,7 @@ and every line should be justifiable against the privacy promise in [docs/PRIVAC
 ## Set up
 
 ```bash
-git clone <repo>
+git clone https://github.com/Mounesh-13/skinshift.git
 cd skinshift
 npm install
 npx playwright install chromium
@@ -76,5 +76,4 @@ A change is ready when `npm run test` passes and the change is checked by hand o
 ## Reporting a security or privacy issue
 
 Please don't file a public issue for a suspected data leak or a bug that could expose user content.
-Contact the maintainers privately first. Contact details are in the repository's security policy
-(to be added before the repository goes public).
+Contact the maintainers privately first. Use GitHub's private vulnerability reporting on the repository's Security tab.
