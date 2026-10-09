@@ -1,9 +1,9 @@
 /*
  * Site adapter: gemini.google.com
  *
- * Date last verified:      NOT YET VERIFIED LIVE (authored 2026-10-08 without live access)
- * Chrome version tested:   none yet
- * Site URL / version:      https://gemini.google.com (DOM as of authoring; unverified)
+ * Date last verified:      2026-10-09 live by Mounesh (Profile 6, wallpaper + blur confirmed)
+ * Chrome version tested:   154.0.8037.99
+ * Site URL / version:      https://gemini.google.com (live DOM 2026-10-09)
  * Known fragile selectors: `chat-app` and `bard-sidenav-container` are Angular custom element
  *                          names that Google renames without notice. Expect breakage here first.
  *
@@ -28,7 +28,14 @@
       'bard-sidenav-container',
       'mat-sidenav-content',
       '.chat-app-container',
-      '.content-wrapper'
+      '.content-wrapper',
+      // Page chrome (plain tags, not classes): top bars, bottom composer
+      // bands and sidebars keep opaque seams at the viewport edges otherwise.
+      'header',
+      'footer',
+      'aside',
+      'nav',
+      'form'
     ]
   });
 })(typeof self !== 'undefined' ? self : window);

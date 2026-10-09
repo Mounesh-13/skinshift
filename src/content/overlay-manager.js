@@ -144,9 +144,14 @@
       state.styleEl.id = STYLE_ID;
     }
     const selectors = ['html', 'body'].concat(state.adapter.transparent || []).filter(isValidSelector);
+    // Fades and vignettes often live on ::before/::after of the cleared
+    // containers. Pseudo-elements cannot be querySelector-validated, so they
+    // are derived from the already-validated bases only.
+    const pseudos = selectors.flatMap((s) => [s + '::before', s + '::after']);
     // textContent, not innerHTML: keeps us clear of Trusted Types string sinks (failure mode #5).
     state.styleEl.textContent =
-      selectors.join(', ') + ' { background-color: transparent !important; background-image: none !important; }';
+      selectors.join(', ') + ' { background-color: transparent !important; background-image: none !important; }' +
+      pseudos.join(', ') + ' { background: none !important; }';
     if (!state.styleEl.isConnected) (document.head || document.documentElement).appendChild(state.styleEl);
   }
 

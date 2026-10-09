@@ -69,6 +69,21 @@ orphan-blob-with-flag-false direction (benign, converges via F3 self-heal);
 `save()` `Object.assign` call sites (patches are internally built, no
 attacker-controlled keys — noted, not a reachable sink).
 
+## Follow-up: edge seams (same day)
+
+Screenshots from the live Mounesh profile showed opaque seams: ChatGPT
+bottom composer band, Claude top nav bar + right-edge strip. Root cause:
+adapter `transparent` lists covered content containers but not page chrome,
+and never pseudo-elements (where fades live).
+Fix: `applyAdapterCss` now also emits `background: none !important` for
+`::before`/`::after` of every cleared container; all three adapters clear
+the structural landmarks `header, footer, aside, nav, form` (plain tags, no
+fragile class names). Non-matching selectors are validated out / harmless
+no-ops. Tests: `test/regress-edges.test.js` T1+T2 (RED→GREEN); full suite
+31/31 unit + 52/52 e2e green. Unverified live: needs visual confirm in the
+Mounesh profile (reload the extension); exact-beauty pass may still need
+live-DOM selectors if seams persist.
+
 ## Merge evidence
 
 - Checkpoint RED: `2bcda88` — `test: add reproducers for round-3 fixes …`
