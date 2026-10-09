@@ -14,8 +14,16 @@
     "icons": "node tools/run-icons.mjs",
     "package": "node tools/package.mjs"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["chrome-extension", "privacy", "personalization", "chatgpt", "claude", "gemini", "wallpaper"],
+  "author": "Mounesh Kodangal",
+  "homepage": "https://github.com/Mounesh-13/skinshift#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mounesh-13/skinshift.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mounesh-13/skinshift/issues"
+  },
   "license": "MIT",
   "description": "SkinShift for AI Chats: a 100% local Chrome extension that adds a wallpaper and frosted-glass layer to ChatGPT, Claude and Gemini.",
   "devDependencies": {

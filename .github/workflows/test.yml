@@ -1,0 +1,26 @@
+# SkinShift CI: unit + mock end-to-end suites in real Chromium.
+# The e2e scripts launch Chromium with --no-sandbox already, so they run
+# unprivileged on ubuntu-latest. Requires no secrets: everything is local.
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: unit tests
+        run: npm run test:unit
+      - name: end-to-end suites (real Chromium, mock pages)
+        run: npm run test:e2e
