@@ -30,6 +30,8 @@
   }
 
   async function save(patch) {
+    clearTimeout(saveTimer); // cancel any pending slider debounce: this write supersedes it
+    saveTimer = null;
     settings = NS.normalizeSettings(Object.assign({}, settings, patch));
     await chrome.storage.local.set({ settings });
   }
