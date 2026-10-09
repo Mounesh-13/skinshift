@@ -59,20 +59,22 @@
   async function reconcile() {
     if (!settings) return;
     const mySeq = ++seq;
-    const enabled =
-      status === NS.STATUS.SUPPORTED && settings.hasWallpaper && settings.sites[adapter.id] !== false;
     try {
+      const enabled =
+        status === NS.STATUS.SUPPORTED && settings.hasWallpaper && settings.sites[adapter.id] !== false;
       if (enabled) {
         await NS.overlay.attach(settings, adapter);
       } else {
         NS.overlay.detach();
       }
+      if (mySeq !== seq) return;
+      // Contrast/badge reporting must never reject onto the chat page: the
+      // storage.onChanged path calls reconcile() fire-and-forget.
+      const verdict = NS.evaluateContrast(settings.sample, settings.opacity);
+      safeSend({ type: 'badge:set', active: NS.overlay.isMounted(), warn: !!(verdict && !verdict.pass) });
     } catch (e) {
-      NS.overlay.detach();
+      try { NS.overlay.detach(); } catch (_) {}
     }
-    if (mySeq !== seq) return;
-    const verdict = NS.evaluateContrast(settings.sample, settings.opacity);
-    safeSend({ type: 'badge:set', active: NS.overlay.isMounted(), warn: !!(verdict && !verdict.pass) });
   }
 
   // Popup asks for status. Synchronous reply, so return false from the listener.
