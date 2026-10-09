@@ -17,7 +17,7 @@ Tick each item in the release PR. An unticked [M] item means the release is not 
 | [A] smoke (upload, persist, SPA re-render, pointer-events) | 14/14 passing |
 | [A] multi-site (3 hosts, per-site toggle, dark/light, unsupported DOM, strict Trusted Types, restrictive img-src) | 20/20 passing |
 | [A] popup (presets, readability warning, badge, perf mode, reset) | 18/18 passing |
-| [M] live ChatGPT / Claude / Gemini | **not yet run.** The build sandbox cannot reach the sites and has no account. |
+| [M] live ChatGPT / Claude / Gemini | **verified 2026-10-09** (Chrome 154.0.8037.99, Mounesh Profile 6, wallpaper + blur confirmed on all three). |
 
 ## 1. Fresh install
 - [A] Service worker starts; default settings written on install.
