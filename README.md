@@ -1,5 +1,8 @@
 # SkinShift for AI Chats
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 > **Make your AI chat yours, not OpenAI's white box.**
 
 ChatGPT, Claude and Gemini all look the same: a white box with zero personalization. You can
@@ -27,9 +30,9 @@ sites. It runs entirely on your machine.
 
 | Site | Host | Status |
 |---|---|---|
-| ChatGPT | `chatgpt.com` | Built and tested on a mock DOM. **Live check pending.** |
-| Claude | `claude.ai` | Built and tested on a mock DOM. **Live check pending.** |
-| Gemini | `gemini.google.com` | Built and tested on a mock DOM, including a strict Trusted Types page. **Live check pending.** |
+| ChatGPT | `chatgpt.com` | Verified live 2026-10-09 (wallpaper + blur, Chrome 154). |
+| Claude | `claude.ai` | Verified live 2026-10-09 (wallpaper + blur, Chrome 154). |
+| Gemini | `gemini.google.com` | Verified live 2026-10-09 (wallpaper + blur, Chrome 154, no Trusted Types violations). |
 
 Selectors are per site, in `src/content/site-adapters/`. Each file says when it was last verified and which selectors are fragile.
 
@@ -74,6 +77,11 @@ SkinShift is a client-side cosmetic CSS and DOM overlay, conceptually the same a
 ## Contributing
 
 Adding a site is a good first contribution, typically under 10 minutes. See [CONTRIBUTING.md](CONTRIBUTING.md). Architecture notes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and design decisions are in [DECISIONS.md](DECISIONS.md).
+
+New here? Bug reports, site requests and pull requests all have templates —
+[open an issue](https://github.com/Mounesh-13/skinshift/issues/new/choose) and
+pick one. Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report
+security issues privately per [SECURITY.md](SECURITY.md), never as public issues.
 
 ## Development
 
