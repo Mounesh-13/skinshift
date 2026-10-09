@@ -1,9 +1,9 @@
 /*
  * Site adapter: claude.ai
  *
- * Date last verified:      NOT YET VERIFIED LIVE (authored 2026-10-08 without live access)
- * Chrome version tested:   none yet
- * Site URL / version:      https://claude.ai (DOM as of authoring; unverified)
+ * Date last verified:      2026-10-09 live by Mounesh (Profile 6, wallpaper + blur confirmed)
+ * Chrome version tested:   154.0.8037.99
+ * Site URL / version:      https://claude.ai (live DOM 2026-10-09)
  * Known fragile selectors: the token-class selectors (`bg-bg-*`, `font-claude*`) depend on
  *                          Claude's utility-class naming, which changes with design refreshes.
  *                          `main` and `[role="main"]` are the most stable anchors.
@@ -26,7 +26,14 @@
       '#root',
       'div[class*="bg-bg-100"]',
       'div[class*="bg-bg-200"]',
-      'div[class*="bg-bg-000"]'
+      'div[class*="bg-bg-000"]',
+      // Page chrome (plain tags, not classes): top bars, bottom composer
+      // bands and sidebars keep opaque seams at the viewport edges otherwise.
+      'header',
+      'footer',
+      'aside',
+      'nav',
+      'form'
     ]
   });
 })(typeof self !== 'undefined' ? self : window);

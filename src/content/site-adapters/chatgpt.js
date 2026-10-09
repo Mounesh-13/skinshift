@@ -1,9 +1,9 @@
 /*
  * Site adapter: chatgpt.com
  *
- * Date last verified:      NOT YET VERIFIED LIVE (authored 2026-10-08 without live access)
- * Chrome version tested:   none yet
- * Site URL / version:      https://chatgpt.com (DOM as of authoring; unverified)
+ * Date last verified:      2026-10-09 live by Mounesh (Profile 6, wallpaper + blur confirmed)
+ * Chrome version tested:   154.0.8037.99
+ * Site URL / version:      https://chatgpt.com (live DOM 2026-10-09)
  * Known fragile selectors: everything under "surfaces" and "transparent" except the generic
  *                          `main` and `[role="main"]`. ChatGPT redesigns often. Run
  *                          test/selector-check.spec.js after every site change.
@@ -27,7 +27,14 @@
       'main',
       '#__next',
       '[role="presentation"]',
-      'div[class*="bg-token-main-surface"]'
+      'div[class*="bg-token-main-surface"]',
+      // Page chrome (plain tags, not classes): top bars, bottom composer
+      // bands and sidebars keep opaque seams at the viewport edges otherwise.
+      'header',
+      'footer',
+      'aside',
+      'nav',
+      'form'
     ]
   });
 })(typeof self !== 'undefined' ? self : window);
