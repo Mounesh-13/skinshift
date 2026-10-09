@@ -77,3 +77,28 @@ A change is ready when `npm run test` passes and the change is checked by hand o
 
 Please don't file a public issue for a suspected data leak or a bug that could expose user content.
 Contact the maintainers privately first. Use GitHub's private vulnerability reporting on the repository's Security tab.
+
+## Code of Conduct
+
+Be kind. The [Code of Conduct](CODE_OF_CONDUCT.md) (Contributor Covenant) applies
+in issues, PRs, and reviews. Unacceptable behavior can be reported privately —
+see the enforcement section in that file.
+
+## Issues and first contributions
+
+- Issues have templates: **bug report**, **feature request**, and **new site
+  support**. Pick the one that fits; the site template is the fastest route to
+  a first contribution.
+- Good starter work: a new site adapter (under 10 minutes, see above), a stale
+  selector refresh after a site redesign, or a failing live-check item in
+  [docs/QA_CHECKLIST.md](docs/QA_CHECKLIST.md). Ask on the issue if you are
+  unsure — a maintainer will confirm the approach before you code.
+
+## What happens after you open a PR
+
+1. The PR template checklist is the review bar: ground rules, green tests,
+   live check ticked.
+2. A maintainer reviews for the privacy promise first, correctness second,
+   style last. Expect questions, not just approvals.
+3. Small PRs merge fast; large ones may be asked to split. One logical change
+   per PR keeps everyone's review load light.
