@@ -56,6 +56,41 @@
     }
   }
 
+  // Late arrivals: the 10 s window can miss slow mounts, and SPAs can render
+  // the surface afterwards or switch routes without a reload (pushState).
+  // Arm a throttled re-check that promotes to SUPPORTED on the first match,
+  // then disarms itself. Everything fails quiet per hard constraint #5.
+  function armLateSurfaceWatch() {
+    let settled = false;
+    let lastCheck = 0;
+    let lastUrl = '';
+    try { lastUrl = location.href; } catch (e) { lastUrl = ''; }
+    const recheck = () => {
+      if (settled) return;
+      const now = Date.now();
+      if (now - lastCheck < 2000) return; // chat DOMs mutate constantly; check at most 1x/2 s
+      lastCheck = now;
+      let sel = null;
+      try {
+        if (location.href !== lastUrl) lastUrl = location.href;
+        sel = findSurface();
+      } catch (e) { sel = null; }
+      if (sel) {
+        settled = true;
+        try { observer.disconnect(); } catch (e) {}
+        status = NS.STATUS.SUPPORTED;
+        reconcile();
+      }
+    };
+    let observer = null;
+    try {
+      window.addEventListener('popstate', recheck);
+      observer = new MutationObserver(recheck);
+      if (document.body) observer.observe(document.body, { childList: true, subtree: true });
+      if (document.documentElement) observer.observe(document.documentElement, { childList: true });
+    } catch (e) { observer = null; }
+  }
+
   async function reconcile() {
     if (!settings) return;
     const mySeq = ++seq;
@@ -112,6 +147,7 @@
       settings = NS.normalizeSettings(stored.settings);
       const found = await waitForSurface();
       status = found ? NS.STATUS.SUPPORTED : NS.STATUS.UNSUPPORTED;
+      if (!found) armLateSurfaceWatch();
       await reconcile();
     } catch (e) {
       status = NS.STATUS.UNSUPPORTED;

@@ -43,6 +43,15 @@
     saveTimer = setTimeout(() => chrome.storage.local.set({ settings }), 180);
   }
 
+  // A drag paused <180 ms then a popup close would lose the change, so flush
+  // any pending debounce on unload. Fire-and-forget: pagehide allows no awaits.
+  function flushPendingSave() {
+    if (!saveTimer) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    chrome.storage.local.set({ settings });
+  }
+
   function say(text, isError) {
     const el = $('msg');
     el.textContent = text;
@@ -64,7 +73,13 @@
       previewUrl = URL.createObjectURL(record.blob);
       $('pv-wall').style.setProperty('background-image', 'url("' + previewUrl + '")');
       $('preview').classList.add('has-wall');
+      return;
     }
+    // Self-heal: the flag says a wallpaper exists but its bytes are gone
+    // (e.g. cleared site data). Clear the flag so open tabs detach and the
+    // status pill stops saying "waiting…" forever.
+    await save({ hasWallpaper: false, sample: null, wallpaperUpdatedAt: 0 });
+    say('Stored photo was missing, so SkinShift was turned off. Upload a photo to re-enable.');
   }
 
   function renderPreview() {
@@ -221,6 +236,13 @@
   }
 
   function wire() {
+    window.addEventListener('pagehide', () => {
+      flushPendingSave();
+      if (previewUrl) {
+        try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+        previewUrl = null;
+      }
+    });
     $('file-input').addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       e.target.value = ''; // allow re-selecting the same file
