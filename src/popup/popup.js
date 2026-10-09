@@ -215,9 +215,15 @@
   }
 
   async function removeWallpaper() {
-    await store.delete(NS.DB.key);
+    // The flag must clear even if the bytes stick, or tabs stay attached to a
+    // photo that can never load. The user is told when it was not clean.
+    let clean = true;
+    try {
+      await store.delete(NS.DB.key);
+    } catch (e) { clean = false; }
     await save({ hasWallpaper: false, sample: null, wallpaperUpdatedAt: 0 });
-    say('Wallpaper removed. Chat pages are back to stock.');
+    say(clean ? 'Wallpaper removed. Chat pages are back to stock.'
+              : 'SkinShift was turned off, but the stored photo could not be deleted.', !clean);
     await refreshPreview();
     renderAll();
   }

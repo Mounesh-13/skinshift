@@ -47,15 +47,13 @@ await sleep(400);
 
 const chat = await context.newPage();
 await chat.setViewportSize({ width: 1280, height: 800 });
-const before = await context.newPage();
-await before.setViewportSize({ width: 1280, height: 800 });
-await before.route('https://chatgpt.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: MOCK.replace('<div id="__next">', '<div id="__next" data-stock="1">') }));
 await chat.goto('https://chatgpt.com/', { waitUntil: 'load' });
 await chat.waitForSelector('#skinshift-root', { state: 'attached', timeout: 10000 });
-await sleep(900);
+await sleep(900); // let blur/paint settle before capture
 
-// Stock comparison: same page with no overlay (second context so no extension is involved).
-const plain = await (await chromium.launch({ channel: 'chromium', headless: true })).newPage({ viewport: { width: 1280, height: 800 } });
+// Stock comparison: same page with no overlay (separate browser, no extension loaded).
+const plainBrowser = await chromium.launch({ channel: 'chromium', headless: true });
+const plain = await plainBrowser.newPage({ viewport: { width: 1280, height: 800 } });
 await plain.route('https://chatgpt.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: MOCK }));
 await plain.goto('https://chatgpt.com/', { waitUntil: 'load' });
 
@@ -63,6 +61,7 @@ await plain.screenshot({ path: path.join(OUT, 'before-stock-chat.png') });
 await chat.screenshot({ path: path.join(OUT, 'after-skinshift-chat.png') });
 await popup.screenshot({ path: path.join(OUT, 'popup.png'), fullPage: true });
 console.log('screenshots written to docs/screenshots');
+await plainBrowser.close();
 await context.close();
 fs.rmSync(userDataDir, { recursive: true, force: true });
 process.exit(0);

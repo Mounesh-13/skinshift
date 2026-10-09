@@ -80,7 +80,9 @@ test('normalizeSettings drops __proto__ and repairs a garbage sample', () => {
   const NS = loadNS('src/lib/constants.js');
   const poisoned = JSON.parse('{"preset":"dark","opacity":0.5,"sites":{"chatgpt":false},"__proto__":{"polluted":true}}');
   const out = NS.normalizeSettings(poisoned);
-  assert.equal(Object.getPrototypeOf(out), Object.prototype, 'settings object prototype was polluted');
+  // Note: out lives in the vm sandbox realm, so its prototype is compared by
+  // behaviour (polluted flag visible?) rather than by realm identity.
+  assert.equal(out.polluted, undefined, 'settings object prototype was polluted');
   assert.equal({}.polluted, undefined);
   assert.equal(out.preset, 'dark');
   assert.equal(out.sites.chatgpt, false);
@@ -89,7 +91,7 @@ test('normalizeSettings drops __proto__ and repairs a garbage sample', () => {
   const badSample = NS.normalizeSettings({ ...NS.defaultSettings(), sample: { r: 'x', g: NaN, b: 999 } });
   assert.equal(badSample.sample, null, 'garbage sample must degrade to null (readability hidden)');
   const goodSample = NS.normalizeSettings({ ...NS.defaultSettings(), sample: { r: 1, g: 2, b: 3 } });
-  assert.deepEqual(goodSample.sample, { r: 1, g: 2, b: 3 });
+  assert.equal(JSON.stringify(goodSample.sample), '{"r":1,"g":2,"b":3}'); // realm-safe value compare
 });
 
 // --- parseRgb pins (documented limitations, must not silently change) ---

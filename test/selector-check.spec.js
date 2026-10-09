@@ -69,9 +69,10 @@ test.describe('live selector check', () => {
         console.warn(`  WARNING: primary selector is stale; fallback "${firstHit.s}" is carrying ${adapter.name}.`);
       }
       const transparentHits = report.transparent.filter((r) => typeof r.n === 'number' && r.n > 0).length;
-      if (transparentHits === 0) {
-        console.warn(`  WARNING: no transparency selector matches; the wallpaper will be hidden behind opaque site UI.`);
-      }
+      // A supported page with zero transparency matches hides the wallpaper
+      // behind opaque site UI: fail, do not just warn. Run logged-in; a login
+      // wall is not a supported page.
+      expect(transparentHits, `No transparency selector matched on ${adapter.name}: the wallpaper would hide behind opaque site UI.`).toBeGreaterThan(0);
       await context.close();
       expect(firstHit, `No surface selector matched on ${adapter.name}. Update src/content/site-adapters/${adapter.id}.js`).toBeTruthy();
     });

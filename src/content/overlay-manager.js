@@ -75,12 +75,18 @@
 
   // Theme is read from the site's own text colour. Our layer makes backgrounds transparent, so
   // background colour is no longer a reliable signal. Light text means a dark site.
+  // Never throws: early document states may have no body yet (hard constraint #5).
   function detectTheme() {
-    const color =
-      NS.parseRgb(getComputedStyle(document.body).color) ||
-      NS.parseRgb(getComputedStyle(document.documentElement).color);
-    if (!color) return 'light';
-    return NS.relativeLuminance(color) > 0.25 ? 'dark' : 'light';
+    try {
+      if (!document.body || !document.documentElement) return 'light';
+      const color =
+        NS.parseRgb(getComputedStyle(document.body).color) ||
+        NS.parseRgb(getComputedStyle(document.documentElement).color);
+      if (!color) return 'light';
+      return NS.relativeLuminance(color) > 0.25 ? 'dark' : 'light';
+    } catch (e) {
+      return 'light';
+    }
   }
 
   function buildElements() {
