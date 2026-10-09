@@ -15,12 +15,34 @@
     return err;
   }
 
-  function validateFile(file) {
+  // Magic-byte sniff: File.type is OS-supplied and spoofable, so verify the
+  // bytes match the claimed type. Pure (unit-testable in Node); 12 bytes
+  // cover the JPEG/PNG/WebP signatures.
+  function sniffImageKind(head) {
+    const b = head instanceof Uint8Array ? head : new Uint8Array(head || []);
+    if (b.length < 12) return null;
+    if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image/jpeg';
+    if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'image/png';
+    if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+      b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp';
+    return null;
+  }
+
+  async function validateFile(file) {
     if (!file) throw fail('no-file', 'No file selected.');
     if (file.size > NS.LIMITS.maxUploadBytes) {
       throw fail('too-large', 'That file is over 15 MB. Try a smaller image.');
     }
     if (!NS.LIMITS.acceptedTypes.includes(file.type)) {
+      throw fail('bad-type', 'Use a JPEG, PNG or WebP image.');
+    }
+    let head;
+    try {
+      head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    } catch (e) {
+      throw fail('decode-failed', 'Could not read that image. It may be corrupted.');
+    }
+    if (sniffImageKind(head) !== file.type) {
       throw fail('bad-type', 'Use a JPEG, PNG or WebP image.');
     }
   }
@@ -55,13 +77,20 @@
   }
 
   NS.prepareWallpaper = async function prepareWallpaper(file) {
-    validateFile(file);
+    await validateFile(file);
 
     let bitmap;
     try {
       bitmap = await createImageBitmap(file);
     } catch (e) {
       throw fail('decode-failed', 'Could not read that image. It may be corrupted.');
+    }
+
+    // Decompression-bomb guard: file size caps bytes, not pixels. A tiny file
+    // can decode to gigapixels and OOM the popup before fitWithin ever runs.
+    if (!NS.bitmapSizeOk(bitmap.width, bitmap.height)) {
+      if (typeof bitmap.close === 'function') bitmap.close();
+      throw fail('too-large', 'That image has absurd dimensions. Try a smaller image.');
     }
 
     const size = fitWithin(bitmap.width, bitmap.height, NS.LIMITS.maxWidth, NS.LIMITS.maxHeight);
@@ -94,4 +123,12 @@
 
   NS.fitWithin = fitWithin;
   NS.validateFile = validateFile;
+  NS.sniffImageKind = sniffImageKind;
+  // Pixel cap for decoded bitmaps (see prepareWallpaper). Generous on purpose:
+  // legit phone photos are ~12 MP; this only stops absurd allocations.
+  NS.bitmapSizeOk = function bitmapSizeOk(w, h) {
+    const MAX_DIM = 16384, MAX_PIXELS = 64 * 1024 * 1024;
+    return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 &&
+      w <= MAX_DIM && h <= MAX_DIM && w * h <= MAX_PIXELS;
+  };
 })(typeof self !== 'undefined' ? self : window);
