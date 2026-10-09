@@ -112,17 +112,19 @@ for (const host of Object.keys(mode)) {
 }
 
 // Surface status via the content script's status:get, asked through the service worker.
+// Matched by adapter id (s.site), not the display name: renames must not break this.
+const HOST_TO_ID = { 'chatgpt.com': 'chatgpt', 'claude.ai': 'claude', 'gemini.google.com': 'gemini' };
 async function statusFor(host) {
-  return sw.evaluate(async (wantHost) => {
+  return sw.evaluate(async (wantId) => {
     const all = await chrome.tabs.query({});
     for (const t of all) {
       try {
         const s = await chrome.tabs.sendMessage(t.id, { type: 'status:get' });
-        if (s && s.name && s.name.toLowerCase().replace(/\s/g, '') === wantHost) return s;
+        if (s && s.site === wantId) return s;
       } catch (e) { /* not a supported tab */ }
     }
     return null;
-  }, { 'chatgpt.com': 'chatgpt', 'claude.ai': 'claude', 'gemini.google.com': 'gemini' }[host]);
+  }, HOST_TO_ID[host]);
 }
 for (const host of Object.keys(mode)) {
   const s = await statusFor(host);
@@ -133,7 +135,7 @@ for (const host of Object.keys(mode)) {
 await popup.bringToFront();
 const claudeBox = popup.locator('#sites label', { hasText: 'Claude' }).locator('input');
 await claudeBox.uncheck();
-await sleep(900);
+await tabs['claude.ai'].waitForFunction(() => !document.getElementById('skinshift-root'), null, { timeout: 8000 });
 check('per-site toggle OFF detaches Claude only', !(await attachedOn('claude.ai')) && (await attachedOn('chatgpt.com')));
 await claudeBox.check();
 check('per-site toggle ON reattaches Claude', await waitAttached('claude.ai'));
@@ -142,17 +144,24 @@ check('per-site toggle ON reattaches Claude', await waitAttached('claude.ai'));
 const theme = () => tabs['chatgpt.com'].evaluate(() => document.getElementById('skinshift-root')?.dataset.ssTheme);
 check('starts in light theme', (await theme()) === 'light', String(await theme()));
 await tabs['chatgpt.com'].evaluate(() => document.documentElement.classList.add('dark'));
-await sleep(1000);
+await tabs['chatgpt.com'].waitForFunction(
+  () => document.getElementById('skinshift-root')?.dataset.ssTheme === 'dark', null, { timeout: 8000 });
 check('site dark toggle flips overlay tint to dark (no reload)', (await theme()) === 'dark', String(await theme()));
 await tabs['chatgpt.com'].evaluate(() => document.documentElement.classList.remove('dark'));
-await sleep(1000);
+await tabs['chatgpt.com'].waitForFunction(
+  () => document.getElementById('skinshift-root')?.dataset.ssTheme === 'light', null, { timeout: 8000 });
 check('site back to light flips tint back', (await theme()) === 'light', String(await theme()));
 
 // Unsupported layout => no-op, status unsupported, no page errors.
 mode['gemini.google.com'] = 'nomain';
 await tabs['gemini.google.com'].reload({ waitUntil: 'load' });
-await sleep(11000); // adapter waits up to 10s for a surface, then gives up quietly
-const unsupported = await statusFor('gemini.google.com');
+// Poll for the unsupported verdict (adapter waits up to 10 s, then gives up quietly).
+let unsupported = null;
+for (let i = 0; i < 30 && !unsupported; i++) {
+  await sleep(500);
+  const s = await statusFor('gemini.google.com');
+  if (s && s.status === 'unsupported') unsupported = s;
+}
 check('unsupported Gemini layout => status "unsupported" and no overlay', !!unsupported && unsupported.status === 'unsupported' && (await tabs['gemini.google.com'].locator('#skinshift-root').count()) === 0);
 
 // Strict Trusted Types on Gemini: our injection must not trip TT enforcement.
@@ -160,6 +169,8 @@ mode['gemini.google.com'] = 'tt';
 errors['gemini.google.com'] = [];
 await tabs['gemini.google.com'].reload({ waitUntil: 'load' });
 check('overlay attaches on Gemini under strict Trusted Types CSP', await waitAttached('gemini.google.com'));
+// Settle wait: console side-channels are async and can only be observed by
+// waiting, not by polling for a state. 1.5 s bounds the flakiness window.
 await sleep(1500);
 const ttErrors = errors['gemini.google.com'].filter((e) => /trusted/i.test(e));
 check('zero Trusted Types violations on Gemini', ttErrors.length === 0, ttErrors[0] || '');
@@ -172,7 +183,10 @@ mode['claude.ai'] = 'csp-img';
 errors['claude.ai'] = [];
 await tabs['claude.ai'].reload({ waitUntil: 'load' });
 await waitAttached('claude.ai');
-await sleep(1500);
+await tabs['claude.ai'].waitForFunction(() => {
+  const w = document.querySelector('#skinshift-root .ss-wallpaper');
+  return w && w.naturalWidth > 0;
+}, null, { timeout: 10000 });
 const imgState = await tabs['claude.ai'].evaluate(() => {
   const w = document.querySelector('#skinshift-root .ss-wallpaper');
   return w ? { display: getComputedStyle(w).display, nw: w.naturalWidth } : null;
@@ -181,7 +195,9 @@ check('restrictive img-src page: wallpaper still decodes (observed Chromium beha
 await tabs['claude.ai'].evaluate(() => {
   document.querySelector('#skinshift-root .ss-wallpaper').dispatchEvent(new Event('error'));
 });
-await sleep(300);
+await tabs['claude.ai'].waitForFunction(
+  () => getComputedStyle(document.querySelector('#skinshift-root .ss-wallpaper')).display === 'none',
+  null, { timeout: 5000 });
 const fallback = await tabs['claude.ai'].evaluate(() => getComputedStyle(document.querySelector('#skinshift-root .ss-wallpaper')).display);
 check('load-error fallback hides wallpaper, scrim keeps chat readable', fallback === 'none', fallback);
 const scrimStill = await tabs['claude.ai'].evaluate(() => getComputedStyle(document.querySelector('#skinshift-root .ss-scrim')).display);

@@ -58,18 +58,30 @@
 
   // Merges whatever is in storage with defaults. Missing or malformed data falls back to
   // defaults, so a corrupted settings blob can't brick the extension.
+  // Allowlist pick (not Object.assign): stored keys such as __proto__ must not
+  // reach the output object, and each field is validated to its domain.
   NS.normalizeSettings = function normalizeSettings(stored) {
     const defaults = NS.defaultSettings();
     if (!stored || typeof stored !== 'object') return defaults;
-    // Keep the default `sites` in its own variable: merging `stored` first would let a corrupt
-    // `sites: null` overwrite it, and the next merge would throw.
+    const out = defaults;
+    if (typeof stored.preset === 'string' && (NS.PRESETS[stored.preset] || stored.preset === 'custom')) {
+      out.preset = stored.preset;
+    }
+    out.opacity = clamp(Number(stored.opacity), 0, 1, NS.PRESETS.light.opacity);
+    out.blur = clamp(Number(stored.blur), 0, 40, NS.PRESETS.light.blur);
+    out.performanceMode = !!stored.performanceMode;
+    out.hasWallpaper = !!stored.hasWallpaper;
+    if (Number.isFinite(stored.wallpaperUpdatedAt) && stored.wallpaperUpdatedAt >= 0) {
+      out.wallpaperUpdatedAt = stored.wallpaperUpdatedAt;
+    }
     const storedSites = stored.sites && typeof stored.sites === 'object' ? stored.sites : {};
-    const out = Object.assign(defaults, stored);
-    out.sites = Object.assign(NS.defaultSettings().sites, storedSites);
-    out.opacity = clamp(Number(out.opacity), 0, 1, NS.PRESETS.light.opacity);
-    out.blur = clamp(Number(out.blur), 0, 40, NS.PRESETS.light.blur);
-    out.performanceMode = !!out.performanceMode;
-    out.hasWallpaper = !!out.hasWallpaper;
+    for (const s of NS.SITES) out.sites[s.id] = storedSites[s.id] !== false;
+    const smp = stored.sample;
+    out.sample = smp && typeof smp === 'object' &&
+      Number.isFinite(smp.r) && Number.isFinite(smp.g) && Number.isFinite(smp.b) &&
+      smp.r >= 0 && smp.r <= 255 && smp.g >= 0 && smp.g <= 255 && smp.b >= 0 && smp.b <= 255
+      ? { r: smp.r, g: smp.g, b: smp.b }
+      : null;
     return out;
   };
 

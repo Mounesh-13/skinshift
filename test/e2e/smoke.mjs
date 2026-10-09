@@ -57,7 +57,8 @@ chat.on('pageerror', (e) => chatErrors.push('pageerror: ' + e.message));
 chat.on('console', (m) => { if (m.type() === 'error') chatErrors.push('console: ' + m.text()); });
 
 await chat.goto('https://chatgpt.com/', { waitUntil: 'load' });
-await sleep(1500);
+// Absence assertion: passes immediately when no overlay exists, waits only if one appears.
+await chat.waitForFunction(() => !document.querySelector('#skinshift-root'), null, { timeout: 5000 });
 check('no overlay before a wallpaper is uploaded', (await chat.locator('#skinshift-root').count()) === 0);
 
 const popup = await context.newPage();
@@ -90,14 +91,15 @@ check('overlay survives page refresh', afterReload);
 
 // SPA re-render defence: remove the layer as a framework would; it must come back.
 await chat.evaluate(() => document.getElementById('skinshift-root').remove());
-await sleep(900);
+await chat.waitForSelector('#skinshift-root', { state: 'attached', timeout: 5000 });
 check('MutationObserver re-attaches removed layer', (await chat.locator('#skinshift-root').count()) === 1);
 
 // Settings change propagates to the open tab.
 await popup.bringToFront();
-await popup.fill('#opacity', '40').catch(() => {});
 await popup.evaluate(() => { const el = document.getElementById('opacity'); el.value = '40'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-await sleep(700);
+await chat.waitForFunction(
+  () => getComputedStyle(document.getElementById('skinshift-root')).getPropertyValue('--ss-opacity').trim() === '0.4',
+  null, { timeout: 8000 });
 const op = await chat.evaluate(() => getComputedStyle(document.getElementById('skinshift-root')).getPropertyValue('--ss-opacity').trim());
 check('opacity slider propagates to ChatGPT tab', op === '0.4', 'opacity=' + op);
 

@@ -11,7 +11,7 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:selectors": "playwright test",
     "screenshots": "node tools/screenshots.mjs",
-    "icons": "python3 tools/make-icons.py",
+    "icons": "node tools/run-icons.mjs",
     "package": "node tools/package.mjs"
   },
   "keywords": [],

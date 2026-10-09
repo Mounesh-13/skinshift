@@ -52,20 +52,24 @@ check('readability panel hidden with no wallpaper', await isHidden());
 await popup.setInputFiles('#file-input', FIX('white.png'));
 await popup.waitForFunction(() => document.getElementById('msg').textContent.startsWith('Saved'), null, { timeout: 15000 });
 await popup.evaluate(() => { const el = document.getElementById('opacity'); el.value = '20'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-await sleep(400);
+await popup.waitForFunction(() => document.getElementById('readability').className.includes('warn'), null, { timeout: 8000 });
 check('low-contrast setup (white photo, 20% opacity) shows warning in popup', (await readClass()).includes('warn'), await readClass());
 check('warning text names the failing theme and the WCAG bar', (await popup.textContent('#read-text')).includes('WCAG AA'));
 
-// Toolbar badge shows '!' for the same tab (non-blocking).
-await sleep(900);
-const badge = await sw.evaluate(async () => {
-  const tabs = await chrome.tabs.query({});
-  for (const t of tabs) {
-    const text = await chrome.action.getBadgeText({ tabId: t.id });
-    if (text === '!') return '!';
-  }
-  return null;
-});
+// Toolbar badge shows '!' for the same tab (non-blocking). The badge path is
+// popup -> storage -> content script -> service worker (4 hops), so poll it.
+let badge = null;
+for (let i = 0; i < 20 && badge !== '!'; i++) {
+  await sleep(500);
+  badge = await sw.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    for (const t of tabs) {
+      const text = await chrome.action.getBadgeText({ tabId: t.id });
+      if (text === '!') return '!';
+    }
+    return null;
+  });
+}
 check('toolbar badge shows "!" on low-contrast setup', badge === '!', String(badge));
 
 // The page itself keeps working: wallpaper still applied, chat text untouched.
@@ -79,7 +83,8 @@ check('warning is non-blocking: wallpaper applied, chat text colour untouched', 
 // 3. Every preset passes on the worst-case white wallpaper (both themes, per the math test).
 for (const id of ['light', 'dark', 'high-blur']) {
   await popup.click(`.preset[data-preset="${id}"]`);
-  await sleep(250);
+  await popup.waitForFunction(
+    () => document.getElementById('readability').className.includes('pass'), null, { timeout: 8000 });
   const cls = await readClass();
   check(`preset "${id}" passes readability on worst-case white wallpaper`, cls.includes('pass'), cls);
 }
@@ -90,7 +95,7 @@ check('high-blur preset writes blur=28 to storage', storedBlur === 28, String(st
 
 // 4. Performance mode: blur disabled and swapped for plain dimming.
 await popup.check('#perf');
-await sleep(600);
+await chat.waitForFunction(() => document.getElementById('skinshift-root')?.dataset.ssMode === 'perf', null, { timeout: 8000 });
 const perfMode = await chat.evaluate(() => document.getElementById('skinshift-root')?.dataset.ssMode);
 check('performance mode switches the layer to "perf" (no backdrop blur)', perfMode === 'perf', String(perfMode));
 const blurDisabled = await popup.evaluate(() => document.getElementById('blur').disabled);
@@ -98,14 +103,14 @@ check('blur slider disabled in performance mode', blurDisabled === true);
 const backdrop = await chat.evaluate(() => getComputedStyle(document.querySelector('#skinshift-root .ss-scrim')).backdropFilter);
 check('performance mode removes the backdrop-filter', backdrop === 'none', backdrop);
 await popup.uncheck('#perf');
-await sleep(600);
+await chat.waitForFunction(() => document.getElementById('skinshift-root')?.dataset.ssMode === 'blur', null, { timeout: 8000 });
 const blurMode = await chat.evaluate(() => document.getElementById('skinshift-root')?.dataset.ssMode);
 check('turning performance mode off restores blur', blurMode === 'blur', String(blurMode));
 
 // 5. Reset look restores defaults, keeps the wallpaper.
 await popup.click('.preset[data-preset="high-blur"]');
 await popup.click('#reset');
-await sleep(300);
+await popup.waitForFunction(() => document.getElementById('opacity-out').textContent === '82%', null, { timeout: 8000 });
 const afterReset = await popup.evaluate(async () => (await chrome.storage.local.get('settings')).settings);
 check('reset look restores Light overlay defaults', afterReset.preset === 'light' && afterReset.opacity === 0.82 && afterReset.blur === 6, JSON.stringify({ p: afterReset.preset, o: afterReset.opacity, b: afterReset.blur }));
 check('reset look keeps the uploaded wallpaper', afterReset.hasWallpaper === true);
@@ -113,7 +118,7 @@ check('reset look keeps the uploaded wallpaper', afterReset.hasWallpaper === tru
 // 6. A normal photo passes at defaults.
 await popup.setInputFiles('#file-input', FIX('wallpaper-sample.jpg'));
 await popup.waitForFunction(() => document.getElementById('msg').textContent.startsWith('Saved'), null, { timeout: 15000 });
-await sleep(300);
+await popup.waitForFunction(() => document.getElementById('readability').className.includes('pass'), null, { timeout: 8000 });
 check('normal photo at defaults passes readability', (await readClass()).includes('pass'));
 
 check('no uncaught errors in popup', popupErrors.length === 0, popupErrors.slice(0, 2).join(' | '));
