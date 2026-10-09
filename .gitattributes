@@ -1,0 +1,4 @@
+# Normalize line endings: no more LF/CRLF churn across Windows/macOS/Linux.
+* text=auto
+*.png binary
+*.jpg binary

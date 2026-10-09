@@ -1,6 +1,7 @@
 # SkinShift for AI Chats
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/Mounesh-13/skinshift/actions/workflows/test.yml/badge.svg)](https://github.com/Mounesh-13/skinshift/actions/workflows/test.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > **Make your AI chat yours, not OpenAI's white box.**
